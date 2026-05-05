@@ -1,9 +1,20 @@
 
-// v2const {
-  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-  AlignmentType, WidthType, BorderStyle, ShadingType, LevelFormat,
-  ImageRun, VerticalAlign
-} = require("docx");
+// v2
+const docx = require("docx");
+const Document = docx.Document;
+const Packer = docx.Packer;
+const Paragraph = docx.Paragraph;
+const TextRun = docx.TextRun;
+const Table = docx.Table;
+const TableRow = docx.TableRow;
+const TableCell = docx.TableCell;
+const AlignmentType = docx.AlignmentType;
+const WidthType = docx.WidthType;
+const BorderStyle = docx.BorderStyle;
+const ShadingType = docx.ShadingType;
+const LevelFormat = docx.LevelFormat;
+const ImageRun = docx.ImageRun;
+const VerticalAlign = docx.VerticalAlign;
 const fs = require("fs");
 const path = require("path");
 
