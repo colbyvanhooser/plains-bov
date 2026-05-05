@@ -224,163 +224,158 @@ export default function App() {
     };
 
     try {
-    const {
-  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-  AlignmentType, WidthType, BorderStyle, ShadingType, LevelFormat,
-  ImageRun, VerticalAlign
-} = require("docx");
-const fs = require("fs");
-const path = require("path");
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (data.error) { setError(data.error); } 
+      else { setResult(data.narrative); }
+    } catch (e) {
+      setError("Something went wrong. Make sure the API route is set up.");
+    }
+    setGenerating(false);
+  };
 
-const PLAINS_BLUE = "334462";
+  return (
+    <div style={{ background: PLAINS_LIGHT, minHeight: "100vh", fontFamily: "Calibri, sans-serif" }}>
+      {/* Header */}
+      <div style={{ background: PLAINS_BLUE, padding: "18px 0", textAlign: "center", marginBottom: 32 }}>
+        <div style={{ fontSize: 22, fontWeight: 700, color: "#fff", letterSpacing: "0.12em" }}>PLAINS</div>
+        <div style={{ fontSize: 13, color: "#a8b8cc", letterSpacing: "0.08em" }}>Commercial Real Estate</div>
+        <div style={{ fontSize: 11, color: "#7a93b0", marginTop: 4 }}>BOV Generator</div>
+      </div>
 
-function makeHeaderCell(text, widthDXA) {
-  return new TableCell({
-    width: { size: widthDXA, type: WidthType.DXA },
-    shading: { fill: PLAINS_BLUE, type: ShadingType.CLEAR },
-    margins: { top: 80, bottom: 80, left: 120, right: 120 },
-    borders: {
-      top: { style: BorderStyle.SINGLE, size: 1, color: "FFFFFF" },
-      bottom: { style: BorderStyle.SINGLE, size: 1, color: "FFFFFF" },
-      left: { style: BorderStyle.SINGLE, size: 1, color: "FFFFFF" },
-      right: { style: BorderStyle.SINGLE, size: 1, color: "FFFFFF" },
-    },
-    children: [new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [new TextRun({ text, bold: true, color: "FFFFFF", font: "Calibri", size: 18 })]
-    })]
-  });
-}
+      <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 20px 60px" }}>
 
-function makeDataCell(text, widthDXA) {
-  return new TableCell({
-    width: { size: widthDXA, type: WidthType.DXA },
-    margins: { top: 60, bottom: 60, left: 120, right: 120 },
-    borders: {
-      top: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-      bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-      left: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-      right: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-    },
-    children: [new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [new TextRun({ text: text || "", font: "Calibri", size: 18 })]
-    })]
-  });
-}
+        {/* Date + Client */}
+        <div style={sectionStyle}>
+          <div style={sectionHeaderStyle}>Client Information</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+            <Field label="Date" value={date} onChange={setDate} half />
+            <Field label="Client Entity / LLC" value={clientEntity} onChange={setClientEntity} placeholder="Pontus DQ Portfolio LLC" half />
+            <Field label="Client Contact Name" value={clientName} onChange={setClientName} placeholder="Glen Pace" half />
+            <Field label="Street Address" value={clientAddress} onChange={setClientAddress} placeholder="75413 14th Green Dr." half />
+            <Field label="City, State, ZIP" value={clientCityStateZip} onChange={setClientCityStateZip} placeholder="Indian Wells, CA 92210" half />
+          </div>
+        </div>
 
-function buildForSaleTable(comps) {
-  const cols = [2000, 1400, 1000, 1400, 1280, 1080]; // sum = 8160 (fits in 9360 with margins)
-  const headers = ["Address", "City", "Size (SF)", "Year Built", "Asking Price", "Price/SF"];
-  
-  const avg = comps.length
-    ? (comps.reduce((sum, c) => sum + parseFloat((c.pricePerSF || "0").replace(/[$,]/g, "")), 0) / comps.length).toFixed(2)
-    : "0";
+        {/* Property Info */}
+        <div style={sectionStyle}>
+          <div style={sectionHeaderStyle}>Property Information</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+            <Field label="Property Address" value={propAddress} onChange={setPropAddress} placeholder="720 W Choctaw Ave" half />
+            <Field label="City / Market" value={propCity} onChange={setPropCity} placeholder="Chickasha" half />
+            <Field label="Building Size (SF)" value={propSize} onChange={setPropSize} placeholder="2,310 SF" half />
+            <Field label="Lot Size (acres)" value={propLotSize} onChange={setPropLotSize} placeholder="0.66 acres" half />
+            <Field label="Zoning" value={propZoning} onChange={setPropZoning} placeholder="Commercial" half />
+          </div>
+        </div>
 
-  return new Table({
-    width: { size: 9360, type: WidthType.DXA },
-    columnWidths: cols,
-    rows: [
-      new TableRow({
-        children: headers.map((h, i) => makeHeaderCell(h, cols[i]))
-      }),
-      ...comps.map(c => new TableRow({
-        children: [
-          makeDataCell(c.address, cols[0]),
-          makeDataCell(c.city, cols[1]),
-          makeDataCell(c.size, cols[2]),
-          makeDataCell(c.yearBuilt, cols[3]),
-          makeDataCell(c.askingPrice, cols[4]),
-          makeDataCell(c.pricePerSF, cols[5]),
-        ]
-      }))
-    ]
-  });
-}
+        {/* Comp Sections Toggle */}
+        <div style={sectionStyle}>
+          <div style={sectionHeaderStyle}>Comparable Data</div>
 
-function buildRecentSalesTable(comps) {
-  const cols = [2200, 1400, 1400, 1480, 1480]; // sum = 7960
-  const headers = ["Address", "City", "Year Built", "Sale Date", "Sale Price/SF"];
+          {/* Section toggles */}
+          <div style={{ display: "flex", gap: 24, marginBottom: 24 }}>
+            {[
+              { label: "For-Sale Listings", state: includeForSale, setter: setIncludeForSale },
+              { label: "Recent Sales", state: includeRecentSales, setter: setIncludeRecentSales },
+              { label: "Lease Comps", state: includeLease, setter: setIncludeLease },
+            ].map(({ label, state, setter }) => (
+              <label key={label} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
+                <input type="checkbox" checked={state} onChange={(e) => setter(e.target.checked)} />
+                {label}
+              </label>
+            ))}
+          </div>
 
-  const avg = comps.length
-    ? (comps.reduce((sum, c) => sum + parseFloat((c.pricePerSF || "0").replace(/[$,]/g, "")), 0) / comps.length).toFixed(2)
-    : "0";
+          {includeForSale && (
+            <CompSection
+              title="Section I — Current Available Comparable Properties for Sale"
+              section="forSale"
+              comps={forSaleComps}
+              onUpdate={updateComp(setForSaleComps)}
+              onAdd={() => addComp(setForSaleComps)}
+              onRemove={removeComp(setForSaleComps)}
+            />
+          )}
+          {includeRecentSales && (
+            <CompSection
+              title="Section II — Recent Comparable Sales"
+              section="recentSales"
+              comps={recentSalesComps}
+              onUpdate={updateComp(setRecentSalesComps)}
+              onAdd={() => addComp(setRecentSalesComps)}
+              onRemove={removeComp(setRecentSalesComps)}
+            />
+          )}
+          {includeLease && (
+            <CompSection
+              title="Section III — Recent Comparable Lease Activity"
+              section="lease"
+              comps={leaseComps}
+              onUpdate={updateComp(setLeaseComps)}
+              onAdd={() => addComp(setLeaseComps)}
+              onRemove={removeComp(setLeaseComps)}
+            />
+          )}
+        </div>
 
-  return new Table({
-    width: { size: 9360, type: WidthType.DXA },
-    columnWidths: cols,
-    rows: [
-      new TableRow({
-        children: headers.map((h, i) => makeHeaderCell(h, cols[i]))
-      }),
-      ...comps.map(c => new TableRow({
-        children: [
-          makeDataCell(c.address, cols[0]),
-          makeDataCell(c.city, cols[1]),
-          makeDataCell(c.yearBuilt, cols[2]),
-          makeDataCell(c.saleDate, cols[3]),
-          makeDataCell(c.pricePerSF, cols[4]),
-        ]
-      }))
-    ]
-  });
-}
+        {/* Key Comps for Narrative */}
+        <div style={sectionStyle}>
+          <div style={sectionHeaderStyle}>Key Comps for Valuation Narrative</div>
+          <p style={{ fontSize: 13, color: "#666", marginTop: 0, marginBottom: 16 }}>
+            Enter the addresses of the 2 comps you want anchored in the narrative (one inferior/similar, one superior/similar).
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+            <Field label="Key Comp 1 (inferior / similar)" value={keyComp1} onChange={setKeyComp1} placeholder="700 N 1st St — $150.99/SF" half />
+            <Field label="Key Comp 2 (superior / similar)" value={keyComp2} onChange={setKeyComp2} placeholder="2311 Red Wheat Dr — $158.10/SF" half />
+          </div>
+        </div>
 
-function buildLeaseTable(comps) {
-  const cols = [2200, 1400, 1400, 1480, 1480];
-  const headers = ["Address", "City", "Year Built", "Signed Date", "Price/SF/Yr NNN"];
+        {/* Error */}
+        {error && (
+          <div style={{ background: "#fff0f0", border: "1px solid #f5c0c0", borderRadius: 6, padding: "12px 16px", marginBottom: 20, color: "#c0392b", fontSize: 13 }}>
+            {error}
+          </div>
+        )}
 
-  return new Table({
-    width: { size: 9360, type: WidthType.DXA },
-    columnWidths: cols,
-    rows: [
-      new TableRow({
-        children: headers.map((h, i) => makeHeaderCell(h, cols[i]))
-      }),
-      ...comps.map(c => new TableRow({
-        children: [
-          makeDataCell(c.address, cols[0]),
-          makeDataCell(c.city, cols[1]),
-          makeDataCell(c.yearBuilt, cols[2]),
-          makeDataCell(c.signedDate, cols[3]),
-          makeDataCell(c.pricePerSFYear, cols[4]),
-        ]
-      }))
-    ]
-  });
-}
+        {/* Generate Button */}
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            style={{
+              background: generating ? "#7a93b0" : PLAINS_BLUE,
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              padding: "14px 48px",
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: generating ? "not-allowed" : "pointer",
+              fontFamily: "Calibri, sans-serif",
+              letterSpacing: "0.05em",
+              transition: "background 0.2s",
+            }}
+          >
+            {generating ? "Generating BOV..." : "Generate BOV"}
+          </button>
+        </div>
 
-function spacer() {
-  return new Paragraph({ children: [new TextRun("")] });
-}
+        {/* Result */}
+        {result && (
+          <div style={{ ...sectionStyle, borderColor: PLAINS_BLUE }}>
+            <div style={sectionHeaderStyle}>Generated Valuation Narrative</div>
+            <div style={{ fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap", color: "#222" }}>
+              {result}
+            </div>
+          </div>
+        )}
 
-function boldLabel(label, value) {
-  return new Paragraph({
-    children: [
-      new TextRun({ text: label, bold: true, font: "Calibri", size: 22 }),
-      new TextRun({ text: " " + value, font: "Calibri", size: 22 }),
-    ]
-  });
-}
-
-function sectionHeader(text) {
-  return new Paragraph({
-    children: [new TextRun({ text, bold: true, font: "Calibri", size: 22 })]
-  });
-}
-
-function bodyPara(text) {
-  return new Paragraph({
-    children: [new TextRun({ text, font: "Calibri", size: 22 })]
-  });
-}
-
-function bulletPara(text) {
-  return new Paragraph({
-    numbering: { reference: "bullets", level: 0 },
-    children: [new TextRun({ text, font: "Calibri", size: 22 })]
-  });
-}
-
-export default async function handler(req, res) {
+      </div>
+    </div>
+  );
 }
