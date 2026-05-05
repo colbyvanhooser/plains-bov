@@ -1,4 +1,5 @@
-const {
+
+// v2const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
   AlignmentType, WidthType, BorderStyle, ShadingType, LevelFormat,
   ImageRun, VerticalAlign
