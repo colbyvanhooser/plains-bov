@@ -45,8 +45,10 @@ Use the exact Plains tone — professional, direct, market-grounded.`;
     });
 
     const data = await response.json();
-    console.log("Claude response:", JSON.stringify(data));
-    const narrative = data.content?.[0]?.text;
+console.log("Claude response:", JSON.stringify(data));
+console.log("Content array:", JSON.stringify(data.content));
+console.log("Error from Anthropic:", JSON.stringify(data.error));
+const narrative = data.content?.[0]?.text;
     if (!narrative) throw new Error("No response from Claude");
     res.status(200).json({ narrative });
   } catch (e) {
