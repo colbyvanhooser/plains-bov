@@ -45,10 +45,11 @@ Use the exact Plains tone — professional, direct, market-grounded.`;
     });
 
     const data = await response.json();
+    console.log("Claude response:", JSON.stringify(data));
     const narrative = data.content?.[0]?.text;
     if (!narrative) throw new Error("No response from Claude");
     res.status(200).json({ narrative });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: e.message, stack: e.stack });
   }
 }
